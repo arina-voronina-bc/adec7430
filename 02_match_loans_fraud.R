@@ -51,7 +51,7 @@ feather::write_feather(dloans_s, file.path(saveddataPath, "dloans_s.feather"))
 
 
 # now let's try to call a loan by business name - one we know committed fraud
-dloans_s[grepl('4health',dloans_s)]
+# dloans_s[grepl('4health',dloans_s)]
 #make skinny version of fraud
 fraud_s <- subset(fraud, select = -c(summary, healthcare_billing, matched, shell, real_mis, false_id, secondary))
 fraud_s <- fraud_s[!is.na(borrower)]
@@ -84,11 +84,11 @@ fraud_m <- merge(fraud_s, dloans_s[, list(uid,
                                           servicinglendername)], by = 'borrower', all.x = T)
 
 # ----Merged fraud data cleanup----
-cols <- c("ruralurbanindicator", "hubzoneindicator", "ethnicity", 
+cols <- c("ruralurbanindicator", "hubzoneindicator", "ethnicity", "race",
           "lmiindicator", "businessagedescription", "businesstype", "originatinglender", "servicinglendername")
-fraud_m %<>% mutate_at(cols, factor)
-fraud_m$jobsreported <- as.numeric(fraud_m$jobsreported)
-
+fraud_m <- fraud_m %>% mutate_at(cols, factor)
+fraud_m$initialapprovalamount <- as.numeric(fraud_m$initialapprovalamount)
+fraud_m$amount_stolen <- as.numeric(fraud_m$amount_stolen)
 # ----Looking for matches----
 # find the ones matched when uid (a business name and how often it shows up) is not null (note - there may be multiple ones, so needs manual review)
 # the ones non-matches are the ones with uid null
@@ -136,13 +136,5 @@ feather::write_feather(fraud_m, file.path(saveddataPath, "fraud_m.feather"))
 
 
 
-
-
-
-#dloans_m[age_of_business %in% c('New Business or 2 years or less','Startup, Loan Funds will Open Business','Change of Ownership'), age_class := 'new']
-#dloans_m[age_of_business %in% c('Existing or more than 2 years old'), age_class := 'old']
-# loans_fin[age_of_business %in% c('Unanswered',''), age_class := 'unknown']
-#dloans_m[is.na(age_class), age_class := 'unknown']
-#dloans_m[, (.N), by = list(age_class, businessagedescription)]
 
 

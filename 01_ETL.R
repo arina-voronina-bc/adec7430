@@ -26,15 +26,6 @@ feather::write_feather(dloans, savedloansfile)
 
 
 
-#### LOANS  - OLD LOANS DATA - Clean up column names and borrower names ####
-# load loans
-# loansSavedPath <- file.path(saveddataPath, "ppp_details.feather")
-# loans <- feather::read_feather(loansSavedPath)
-# loans <- data.table(loans)
-# loans2 <- readRDS(file.path(saveddataPath, "ppp_details.rds"))
-
-
-
 
 colnames(dloans) <- tolower(colnames(dloans))
 colnames(dloans) <- gsub("\\(|\\)|\\*", "", colnames(dloans))    # Get rid of special characters in column names

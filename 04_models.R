@@ -73,9 +73,9 @@ ggplot(subset(train, initialapprovalamount != 0), aes(x=businesstype,y=initialap
 
 
 
-# --------------------------------
+# ----------------------------------------------------------
 # --------- Logistic -------------
-# --------------------------------
+# ----------------------------------------------------------
 # v1:
 glm.fits <- glm(fraud ~ . - originatinglender - loanstatusdate - dateapproved - ethnicity - gender - veteran,
                 data = train,
@@ -113,10 +113,9 @@ glm.fac <- glm(fraud ~ lmiindicator + hubzoneindicator + ruralurbanindicator + b
 summary(glm.fac)
 preds.fac <- predict(glm.fac, train.2, type='response')
 
-library(caret)
+
 caret::confusionMatrix(as.factor(as.integer(preds.fac>0.0005)), as.factor(train.2[,fraud]), positive='1')
 
-library(pROC)
 pROC::roc(preds.num, train.2[,fraud])
 # --------- just numeric variables -------------
 glm.num <- glm(fraud ~ initialapprovalamount + 
@@ -136,10 +135,10 @@ summary(glm.num)
 coef(glm.num)
 preds.num <- predict(glm.num, train.2, type='response')
 
-library(caret)
+
 caret::confusionMatrix(as.factor(as.integer(preds.num>0.0005)), as.factor(train.2[,fraud]), positive='1')
 
-library(pROC)
+
 pROC::roc(preds.num, train.2[,fraud])
 
 
@@ -165,8 +164,11 @@ pROC::roc(preds.num, train.2[,fraud])
 # plot ROC
 # get AUC
 
-## --------- Lasso, Ridge -------------
 
+pairs(glm.fits)
+# ----------------------------------------------------------
+## --------- Lasso, Ridge -------------
+# ----------------------------------------------------------
 
 # lasso regression
 lasso.model <- train(fraud ~ ., data = train, method = 'lasso', na.action = na.exclude)
@@ -175,19 +177,58 @@ lasso.model <- train(fraud ~ ., data = train, method = 'lasso', na.action = na.e
 # rsession(84168) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
 
 
+
+#----- another train set -----
 saveRDS(train, file = file.path(saveddataPath, "train.step.1.RDS"))
 train.2 <- copy(train)[, ":="(originatinglender=NULL, servicinglendername=NULL, dateapproved=NULL, loanstatusdate=NULL)]
 rm(train)
 
-glm.num <- glm(fraud ~ jobsreported +
-                 utilities_proceed +
-                 payroll_proceed +
-                 mortgage_interest_proceed +
-                 rent_proceed +
-                 health_care_proceed +
-                 debt_interest_proceed,
-               data = train.2, 
-               family = binomial)
 
 
+train.2[,c("veteran", "gender", "race", "ethnicity")] <- list(NULL)
 
+train.2[train.2$v1 == 2423070, "lmiindicator"] <- "N"
+train.2[train.2$v1 == 1391367, "lmiindicator"] <- "Y"
+train.2[train.2$v1 == 4446790, "lmiindicator"] <- "Y"
+levels(train.2$lmiindicator)[levels(train.2$lmiindicator) == ""] <- "N"
+levels(train.2$businessagedescription)[levels(train.2$businessagedescription) == ""] <- "Unanswered"
+levels(train.2$businesstype)[levels(train.2$businesstype) == ""] <- "Unknown"
+
+feather::write_feather(train.2, file.path(saveddataPath, "train.2.feather"))
+
+# To recall feather file
+testSavedPath <- file.path(saveddataPath, "test.feather")
+test.1 <- read_feather(testSavedPath)
+test.1 <- data.table(test.1)
+test.1[,c("dateapproved", "borrowerstatusdate","servicinglendername", "originatinglender", "loanstatusdate")] <- list(NULL)
+
+test.1[test.1$v1 == 2423070, "lmiindicator"] <- "N"
+test.1[test.1$v1 == 1391367, "lmiindicator"] <- "Y"
+test.1[test.1$v1 == 4446790, "lmiindicator"] <- "Y"
+levels(test.1$lmiindicator)[levels(test.1$lmiindicator) == ""] <- "N"
+levels(test.1$businessagedescription)[levels(test.1$businessagedescription) == ""] <- "Unanswered"
+levels(test.1$businesstype)[levels(test.1$businesstype) == ""] <- "Unknown"
+
+
+# now a train and test with no NAs
+train.2 <- train.2[complete.cases(train.2)]
+test.1 <- test.1[complete.cases(test.1),]
+# ----------------------------------------------------------
+## --------- classification model -------------
+# ----------------------------------------------------------
+# KNN
+# library(class)
+# knn_test_pred <- knn(
+#   train = train.2, 
+#   test = test.1,
+#   cl = train.2$fraud, 
+#   k=5
+# )
+
+knn_tune <- train(
+  fraud ~ ., 
+  data = train.2, 
+  method = "knn", 
+  trControl = trainControl(method = "cv"), 
+  tuneGrid = data.frame(k = c(3,5,7))
+)

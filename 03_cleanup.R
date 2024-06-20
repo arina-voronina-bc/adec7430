@@ -62,6 +62,13 @@ train[,c("indictments", "uid", "amount_stolen", "borrower", "loannumber", "nonpr
 test  <- dplyr::anti_join(dloans_m, train, by = 'uid')
 
 
+#save train and test sets
+feather::write_feather(train, file.path(saveddataPath, "train.feather"))
+feather::write_feather(test, file.path(saveddataPath, "test.feather"))
+
+
+
+
 # some cleanup of NA values
 train$utilities_proceed[is.na(train$utilities_proceed)] <- 0
 train$payroll_proceed[is.na(train$payroll_proceed)] <- 0
@@ -70,6 +77,31 @@ train$rent_proceed[is.na(train$rent_proceed)] <- 0
 train$health_care_proceed[is.na(train$health_care_proceed)] <- 0
 train$debt_interest_proceed[is.na(train$debt_interest_proceed)] <- 0
 sort(sapply(train, function(x) sum(length(which(is.na(x))))), decreasing = TRUE)
-#save train and test sets
-feather::write_feather(train, file.path(saveddataPath, "train.feather"))
-feather::write_feather(test, file.path(saveddataPath, "test.feather"))
+
+# clean up test (reminder to self to do more cleaning before splitting)
+
+test.1$utilities_proceed[is.na(test.1$utilities_proceed)] <- 0
+test.1$payroll_proceed[is.na(test.1$payroll_proceed)] <- 0
+test.1$mortgage_interest_proceed[is.na(test.1$mortgage_interest_proceed)] <- 0
+test.1$rent_proceed[is.na(test.1$rent_proceed)] <- 0
+test.1$health_care_proceed[is.na(test.1$health_care_proceed)] <- 0
+test.1$debt_interest_proceed[is.na(test.1$debt_interest_proceed)] <- 0
+
+
+test.1[test.1$uid == 2423070, "lmiindicator"] <- "N"
+test.1[test.1$uid == 1391367, "lmiindicator"] <- "Y"
+test.1[test.1$uid == 4446790, "lmiindicator"] <- "Y"
+levels(test.1$lmiindicator)[levels(test.1$lmiindicator) == ""] <- "N"
+levels(test.1$businessagedescription)[levels(test.1$businessagedescription) == ""] <- "Unanswered"
+levels(test.1$businesstype)[levels(test.1$businesstype) == ""] <- "Unknown"
+
+test.1[,c("indictments", "v1", "amount_stolen", "borrower", 
+          "loannumber", "nonprofit", "forgivenessamount",
+          "veteran", "gender", "race", "originatinglender",
+          "dateapproved", "loanstatusdate", "servicinglendername",
+          "ethnicity")] <- list(NULL)
+
+
+#save
+feather::write_feather(test.1, file.path(saveddataPath, "test.1.feather"))
+feather::write_feather(train.2, file.path(saveddataPath, "train.2.feather"))
